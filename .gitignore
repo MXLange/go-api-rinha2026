@@ -1,0 +1,29 @@
+# Local build outputs
+/api
+/lb
+/build-index
+/verify-index
+/bin/
+/dist/
+
+# Generated index/data
+/data/
+*.idx
+
+# Test/coverage artifacts
+*.test
+coverage.out
+*.coverprofile
+
+# Local runtime/temp files
+/tmp/
+*.sock
+*.log
+
+# Local env/editor files
+.env
+.env.*
+.idea/
+.vscode/
+*.swp
+*.swo

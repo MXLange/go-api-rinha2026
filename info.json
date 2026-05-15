@@ -8,8 +8,7 @@
     ],
     "source-code-repo": "https://github.com/MXLange/go-api-rinha2026",
     "stack": [
-        "go",
-        "nginx"
+        "go"
     ],
     "open_to_work": false
 }

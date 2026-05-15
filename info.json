@@ -6,7 +6,7 @@
         "https://github.com/MXLange",
         "https://www.linkedin.com/in/murillo-sprengel-lange"
     ],
-    "source-code-repo": "https://github.com/MXLange/rinha-de-backend-2026",
+    "source-code-repo": "https://github.com/MXLange/go-api-rinha2026",
     "stack": [
         "go",
         "nginx"

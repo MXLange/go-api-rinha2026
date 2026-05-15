@@ -4,15 +4,12 @@ services:
     environment:
       - FD_SOCKET=/run/sock/api1.sock
       - INDEX_PATH=/app/data/knn.idx
-      - GOMAXPROCS=1
-      - GOMEMLIMIT=48MiB
-      - GOGC=200
     volumes:
       - sock:/run/sock
     deploy:
       resources:
         limits:
-          cpus: "0.42"
+          cpus: "0.46"
           memory: "165M"
     ulimits:
       nofile:
@@ -24,9 +21,6 @@ services:
     environment:
       - FD_SOCKET=/run/sock/api2.sock
       - INDEX_PATH=/app/data/knn.idx
-      - GOMAXPROCS=1
-      - GOMEMLIMIT=48MiB
-      - GOGC=200
 
   lb:
     image: mxlange/go-api-rinha2026:latest
@@ -40,15 +34,13 @@ services:
       - PORT=9999
       - FD_UPSTREAMS=/run/sock/api1.sock,/run/sock/api2.sock
       - WORKERS=2
-      - GOMAXPROCS=1
-      - GOMEMLIMIT=12MiB
       - GOGC=off
     volumes:
       - sock:/run/sock
     deploy:
       resources:
         limits:
-          cpus: "0.16"
+          cpus: "0.8"
           memory: "20M"
     ulimits:
       nofile:

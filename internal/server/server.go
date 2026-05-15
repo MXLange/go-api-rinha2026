@@ -61,17 +61,12 @@ func ServeFD(sockPath string, handler FraudHandler) error {
 			continue
 		}
 
-		file := os.NewFile(uintptr(fd), "passed-tcp")
-		conn, err := net.FileConn(file)
-		_ = file.Close()
-		if err != nil {
+		if err := syscall.SetNonblock(fd, false); err != nil {
 			_ = syscall.Close(fd)
 			continue
 		}
-		if tcp, ok := conn.(*net.TCPConn); ok {
-			_ = tcp.SetNoDelay(true)
-		}
-		go serveConn(conn, handler)
+		_ = syscall.SetsockoptInt(fd, syscall.IPPROTO_TCP, syscall.TCP_NODELAY, 1)
+		go serveFD(fd, handler)
 	}
 }
 
@@ -95,8 +90,8 @@ func recvFD(conn *net.UnixConn) (int, error) {
 	return -1, errors.New("missing fd")
 }
 
-func serveConn(conn net.Conn, handler FraudHandler) {
-	defer conn.Close()
+func serveFD(fd int, handler FraudHandler) {
+	defer syscall.Close(fd)
 
 	rx := make([]byte, RxCap)
 	head := 0
@@ -109,21 +104,21 @@ func serveConn(conn net.Conn, handler FraudHandler) {
 			case parsedIncomplete:
 				goto readMore
 			case parsedBad:
-				_ = writeAll(conn, response.BadReq)
+				_ = writeAllFD(fd, response.BadReq)
 				return
 			case parsedReady:
-				if !writeAll(conn, response.Ready) {
+				if !writeAllFD(fd, response.Ready) {
 					return
 				}
 				head += req.consumed
 			case parsedNotFound:
-				if !writeAll(conn, response.NotFound) {
+				if !writeAllFD(fd, response.NotFound) {
 					return
 				}
 				head += req.consumed
 			case parsedFraud:
 				resp := handler(rx[head+req.bodyStart : head+req.bodyEnd])
-				if !writeAll(conn, resp) {
+				if !writeAllFD(fd, resp) {
 					return
 				}
 				head += req.consumed
@@ -143,7 +138,7 @@ func serveConn(conn net.Conn, handler FraudHandler) {
 			return
 		}
 
-		n, err := conn.Read(rx[tail:])
+		n, err := readFD(fd, rx[tail:])
 		if err != nil || n == 0 {
 			return
 		}
@@ -151,10 +146,23 @@ func serveConn(conn net.Conn, handler FraudHandler) {
 	}
 }
 
-func writeAll(conn net.Conn, payload []byte) bool {
+func readFD(fd int, payload []byte) (int, error) {
+	for {
+		n, err := syscall.Read(fd, payload)
+		if err == syscall.EINTR {
+			continue
+		}
+		return n, err
+	}
+}
+
+func writeAllFD(fd int, payload []byte) bool {
 	for len(payload) > 0 {
-		n, err := conn.Write(payload)
-		if err != nil || n == 0 {
+		n, err := syscall.Write(fd, payload)
+		if err == syscall.EINTR {
+			continue
+		}
+		if err != nil || n <= 0 {
 			return false
 		}
 		payload = payload[n:]

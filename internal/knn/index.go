@@ -271,20 +271,36 @@ func (idx *Index) scanLeaf(n *node, query *QueryVector, bestDists *[K]int64, bes
 		if laneCount > Lanes {
 			laneCount = Lanes
 		}
+		dists := distanceBlock8(idx.vectors[base:base+Dims*Lanes], query)
 		for lane := 0; lane < laneCount; lane++ {
-			dist := distanceLane(idx.vectors, base, lane, query)
-			insertBest(dist, idx.labels[labelsBase+lane], bestDists, bestLabels)
+			insertBest(dists[lane], idx.labels[labelsBase+lane], bestDists, bestLabels)
 		}
 	}
 }
 
-func distanceLane(vectors []int16, base int, lane int, query *QueryVector) int64 {
-	var dist int64
+func distanceBlock8(block []int16, query *QueryVector) [Lanes]int64 {
+	var dists [Lanes]int64
 	for d := 0; d < Dims; d++ {
-		diff := int64(vectors[base+d*Lanes+lane]) - int64(query[d])
-		dist += diff * diff
+		base := d * Lanes
+		q := int64(query[d])
+		diff0 := int64(block[base+0]) - q
+		diff1 := int64(block[base+1]) - q
+		diff2 := int64(block[base+2]) - q
+		diff3 := int64(block[base+3]) - q
+		diff4 := int64(block[base+4]) - q
+		diff5 := int64(block[base+5]) - q
+		diff6 := int64(block[base+6]) - q
+		diff7 := int64(block[base+7]) - q
+		dists[0] += diff0 * diff0
+		dists[1] += diff1 * diff1
+		dists[2] += diff2 * diff2
+		dists[3] += diff3 * diff3
+		dists[4] += diff4 * diff4
+		dists[5] += diff5 * diff5
+		dists[6] += diff6 * diff6
+		dists[7] += diff7 * diff7
 	}
-	return dist
+	return dists
 }
 
 func insertBest(dist int64, label uint8, bestDists *[K]int64, bestLabels *[K]uint8) {
@@ -302,18 +318,30 @@ func insertBest(dist int64, label uint8, bestDists *[K]int64, bestLabels *[K]uin
 }
 
 func lowerBound(query *QueryVector, min *QueryVector, max *QueryVector) int64 {
-	var dist int64
-	for d := 0; d < Dims; d++ {
-		q := query[d]
-		var diff int64
-		if q < min[d] {
-			diff = int64(min[d]) - int64(q)
-		} else if q > max[d] {
-			diff = int64(q) - int64(max[d])
-		}
-		dist += diff * diff
+	return lowerBoundDim(query[0], min[0], max[0]) +
+		lowerBoundDim(query[1], min[1], max[1]) +
+		lowerBoundDim(query[2], min[2], max[2]) +
+		lowerBoundDim(query[3], min[3], max[3]) +
+		lowerBoundDim(query[4], min[4], max[4]) +
+		lowerBoundDim(query[5], min[5], max[5]) +
+		lowerBoundDim(query[6], min[6], max[6]) +
+		lowerBoundDim(query[7], min[7], max[7]) +
+		lowerBoundDim(query[8], min[8], max[8]) +
+		lowerBoundDim(query[9], min[9], max[9]) +
+		lowerBoundDim(query[10], min[10], max[10]) +
+		lowerBoundDim(query[11], min[11], max[11]) +
+		lowerBoundDim(query[12], min[12], max[12]) +
+		lowerBoundDim(query[13], min[13], max[13])
+}
+
+func lowerBoundDim(q int16, min int16, max int16) int64 {
+	var diff int64
+	if q < min {
+		diff = int64(min) - int64(q)
+	} else if q > max {
+		diff = int64(q) - int64(max)
 	}
-	return dist
+	return diff * diff
 }
 
 func readPartition(buf []byte, out *partition) {

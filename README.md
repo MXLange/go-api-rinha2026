@@ -37,6 +37,14 @@ docker build -t mxlange/go-api-rinha2026:latest .
 
 O Dockerfile compila `/app/api`, `/app/lb` e embute `/app/data/knn.idx`.
 
+Para testar outro `leaf-size` sem alterar codigo:
+
+```bash
+docker build \
+  --build-arg RINHA_LEAF_SIZE=64 \
+  -t mxlange/go-api-rinha2026:latest .
+```
+
 ## Run
 
 ```bash
